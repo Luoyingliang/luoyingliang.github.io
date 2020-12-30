@@ -1,0 +1,191 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn" class="loading">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>wpf的文本渲染引擎（一） - Acoris</title>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="google" content="notranslate" />
+    <meta name="keywords" content="Fechin,"> 
+    <meta name="description" content="Acoris 的个人博客,WPF的文本渲染引擎在WPF中，如果我们可能会碰到需要使用低层次的文本渲染的场景，在这种场景下我们是可以考虑使用FormattedText或者TextLine这两种低层次文本渲染方案的。
+Forma,"> 
+    <meta name="author" content="Acoris"> 
+    <link rel="alternative" href="atom.xml" title="Acoris" type="application/atom+xml"> 
+    <link rel="icon" href="/img/favicon.png"> 
+    
+    
+<link rel="stylesheet" href="/css/diaspora.css">
+
+	<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({
+              google_ad_client: "ca-pub-8691406134231910",
+              enable_page_level_ads: true
+         });
+    </script>
+    <script async custom-element="amp-auto-ads"
+        src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+    </script>
+<meta name="generator" content="Hexo 5.3.0"></head>
+
+<body class="loading">
+    <span id="config-title" style="display:none">Acoris</span>
+    <div id="loader"></div>
+    <div id="single">
+    <div id="top" style="display: block;">
+    <div class="bar" style="width: 0;"></div>
+    <a class="iconfont icon-home image-icon" href="javascript:;" data-url="http://luoyingliang.github.io"></a>
+    <div title="播放/暂停" class="iconfont icon-play"></div>
+    <h3 class="subtitle">wpf的文本渲染引擎（一）</h3>
+    <div class="social">
+        <div>
+            <div class="share">
+                <a title="获取二维码" class="iconfont icon-scan" href="javascript:;"></a>
+            </div>
+            <div id="qr"></div>
+        </div>
+    </div>
+    <div class="scrollbar"></div>
+</div>
+
+    <div class="section">
+        <div class="article">
+    <div class='main'>
+        <h1 class="title">wpf的文本渲染引擎（一）</h1>
+        <div class="stuff">
+            <span>十二月 30, 2020</span>
+            
+
+        </div>
+        <div class="content markdown">
+            <h1 id="WPF的文本渲染引擎"><a href="#WPF的文本渲染引擎" class="headerlink" title="WPF的文本渲染引擎"></a>WPF的文本渲染引擎</h1><p>在<code>WPF</code>中，如果我们可能会碰到需要使用低层次的文本渲染的场景，在这种场景下我们是可以考虑使用<code>FormattedText</code>或者<code>TextLine</code>这两种低层次文本渲染方案的。</p>
+<h2 id="FormattedText-方案"><a href="#FormattedText-方案" class="headerlink" title="FormattedText 方案"></a>FormattedText 方案</h2><p><code>FormattedText</code> 是最简单的低层次文本渲染方案了，它的构造稍显复杂，但是相比于<code>TextLine</code>而言还是简单了很多。</p>
+<h3 id="FormattedText-的初始化准备"><a href="#FormattedText-的初始化准备" class="headerlink" title="FormattedText 的初始化准备"></a>FormattedText 的初始化准备</h3><p><code>FormattedText</code> 需要传入一下参数到构造函数：</p>
+<h4 id="TextToFormat"><a href="#TextToFormat" class="headerlink" title="TextToFormat"></a>TextToFormat</h4><p><code>textToFormat</code> 传入要需要的渲染文本，你想渲染什么文字就传入什么文字，这个属性没太多可以解释的。</p>
+<h4 id="Culture"><a href="#Culture" class="headerlink" title="Culture"></a>Culture</h4><p><code>culture</code> 传入当前的区域文化设置，我建议是从<code>CultureInfo.CurrentCulture</code>里面获取，当然硬编码也是可以的，看具体的需求。</p>
+<h4 id="FlowDirection"><a href="#FlowDirection" class="headerlink" title="FlowDirection"></a>FlowDirection</h4><p><code>flowDirection</code> 传入文本的流动方向，默认是LeftToRight,。</p>
+<h4 id="Typeface"><a href="#Typeface" class="headerlink" title="Typeface"></a>Typeface</h4><p><code>typeface</code> 则是传入文本渲染的字体属性，这个属性能改变的值比较多。</p>
+<p>我们可以只传入<code>FontFamilyName</code>来初始化一个Typeface，如果需要对字体样式、字体权重、字体伸张属性进行修改，则可以考虑使用其他两个构造函数:</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">Typeface</span>(<span class="params">FontFamily fontFamily , FontStyle style , FontWeight weight , FontStretch stretch</span>)</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">Typeface</span>(<span class="params">FontFamily fontFamily , FontStyle style , FontWeight weight , FontStretch stretch , FontFamily fallbackFontFamily</span>)</span>;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>其中最后一个构造函数能够指定回滚字体，这个是很重要的，如果用户自定义的字体中不包含指定字符串的字体就会回滚。</p>
+<h4 id="EmSize"><a href="#EmSize" class="headerlink" title="EmSize"></a>EmSize</h4><p>而 <code>emSize</code> 传入的是文本的渲染大小，尽量大于1小于1024，因为太小和太大都观察不到，这个值理论上可以是达到<code>int.MaxValue</code>，但是还是尽量小于我推荐的值。</p>
+<h4 id="Foreground"><a href="#Foreground" class="headerlink" title="Foreground"></a>Foreground</h4><p> <code>foreground</code> 文本的渲染颜色，这个传入的是<code>Brush</code>类型的实例，怎么构造的话就不细说了，很简单。 </p>
+<h4 id="DPI"><a href="#DPI" class="headerlink" title="DPI"></a>DPI</h4><p><code>dpi</code> 传入的是像素无关的设备像素缩放比例，指的是每英寸的像素数量 / 96。可以通过<code>VisualTreeHelper.GetDpi(Visual)</code>方法获取得到。</p>
+<h4 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h4><p>以下是构造<code>FormattedText</code>的样例数据供大家参考。</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">var</span> formattedText = <span class="keyword">new</span> FormattedText(</span><br><span class="line">                <span class="string">&quot;Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Pellentesque ullamcorper dictum odio Aenean hendrerit wisi ac justo. Nulla ultrices porta ipsum.&quot;</span> +</span><br><span class="line">                <span class="string">&quot;Mauris in risus. In mattis tincidunt felis. Duis nec purus vel sapien ornare imperdiet. Phasellus laoreet, diam non&quot;</span> +</span><br><span class="line">                <span class="string">&quot;viverra congue, est elit tempus enim, in eleifend dui dolor non magna. Nulla facilisi. Maecenas dignissim nisl in erat.&quot;</span> +</span><br><span class="line">                <span class="string">&quot;In mollis diam sed diam. Cras vel purus. Praesent luctus nulla eu nulla. Vestibulum ante ipsum primis in faucibus orci luctus&quot;</span> +</span><br><span class="line">                <span class="string">&quot;et ultrices posuere cubilia Curae; Aliquam erat volutpat. Maecenas eget pede.&quot;</span>,</span><br><span class="line">                CultureInfo.CurrentCulture,</span><br><span class="line">                FlowDirection.LeftToRight,</span><br><span class="line">                <span class="keyword">new</span> Typeface(<span class="string">&quot;Microsoft Yahei&quot;</span>),</span><br><span class="line">                <span class="number">30</span>d,</span><br><span class="line">                <span class="keyword">new</span> SolidColorBrush(Colors.CornflowerBlue),</span><br><span class="line">                <span class="number">1</span>d);</span><br></pre></td></tr></table></figure>
+<h4 id="更多内容"><a href="#更多内容" class="headerlink" title="更多内容"></a>更多内容</h4><p><code>FormattedText</code> 实际上也并不是WPF文本渲染引擎中最低层次的文本渲染方案。可以通过ILSPY反编译<code>FormattedText</code> 类型，实际上我们能够很清楚的看到一个<code>Draw</code>方法：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">internal</span> <span class="keyword">void</span> <span class="title">Draw</span>(<span class="params">DrawingContext dc, Point origin</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	Point lineOrigin = origin;</span><br><span class="line">	<span class="keyword">if</span> (_metrics != <span class="literal">null</span> &amp;&amp; !<span class="built_in">double</span>.IsNaN(_metrics.Extent))</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">using</span> (LineEnumerator lineEnumerator = GetEnumerator())</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">while</span> (lineEnumerator.MoveNext())</span><br><span class="line">			&#123;</span><br><span class="line">				<span class="keyword">using</span> (TextLine textLine = lineEnumerator.Current)</span><br><span class="line">				&#123;</span><br><span class="line">					textLine.Draw(dc, lineOrigin, InvertAxes.None);</span><br><span class="line">					AdvanceLineOrigin(<span class="keyword">ref</span> lineOrigin, textLine);</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">	&#123;</span><br><span class="line">		_metrics = DrawAndCalculateMetrics(dc, origin, getBlackBoxMetrics: <span class="literal">true</span>);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>可以看到实际上FormattedText也是将内容转化为TextLine，以获得渲染支持。</p>
+<h2 id="TextLine-方案"><a href="#TextLine-方案" class="headerlink" title="TextLine 方案"></a>TextLine 方案</h2>
+            <!--[if lt IE 9]><script>document.createElement('audio');</script><![endif]-->
+            <audio id="audio" loop="1" preload="auto" controls="controls" data-autoplay="false">
+                <source type="audio/mpeg" src="">
+            </audio>
+            
+                <ul id="audio-list" style="display:none">
+                    
+                        
+                            <li title='0' data-url='http://link.hhtjim.com/163/425570952.mp3'></li>
+                        
+                    
+                        
+                            <li title='1' data-url='http://link.hhtjim.com/163/425570952.mp3'></li>
+                        
+                    
+                </ul>
+            
+        </div>
+        
+    <div id='gitalk-container' class="comment link"
+		data-enable='false'
+        data-ae='false'
+        data-ci=''
+        data-cs=''
+        data-r=''
+        data-o=''
+        data-a=''
+        data-d='false'
+    >查看评论</div>
+
+
+    </div>
+    
+</div>
+
+
+    </div>
+</div>
+</body>
+
+
+<script src="//lib.baomitu.com/jquery/1.8.3/jquery.min.js"></script>
+<script src="/js/plugin.js"></script>
+<script src="/js/typed.js"></script>
+<script src="/js/diaspora.js"></script>
+
+
+<link rel="stylesheet" href="/photoswipe/photoswipe.css">
+<link rel="stylesheet" href="/photoswipe/default-skin/default-skin.css">
+
+
+<script src="/photoswipe/photoswipe.min.js"></script>
+<script src="/photoswipe/photoswipe-ui-default.min.js"></script>
+
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+            <div class="pswp__top-bar">
+                <!--  Controls are self-explanatory. Order can be changed. -->
+                <div class="pswp__counter"></div>
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div> 
+            </div>
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+</html>
