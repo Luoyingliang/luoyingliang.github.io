@@ -5,13 +5,12 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AC自动机 - Acoris</title>
+    <title>WPF的文本渲染引擎（二） - Acoris</title>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="google" content="notranslate" />
     <meta name="keywords" content="Fechin,"> 
-    <meta name="description" content="Acoris 的个人博客,AC自动机AC自动机用于实现多模匹配算法，应用于字符串高亮、分词等场景
-"> 
+    <meta name="description" content="Acoris 的个人博客,WPF的文本渲染引擎（二）回顾一下上节的内容，上节的内容主要是讲解了WPF的低层次文本渲染方案：FormattedText 方案的使用，这一节我们需要讨论的是WPF中最低层次的文本渲染方案：Text,"> 
     <meta name="author" content="Acoris"> 
     <link rel="alternative" href="atom.xml" title="Acoris" type="application/atom+xml"> 
     <link rel="icon" href="/img/favicon.png"> 
@@ -39,7 +38,7 @@
     <div class="bar" style="width: 0;"></div>
     <a class="iconfont icon-home image-icon" href="javascript:;" data-url="http://luoyingliang.github.io"></a>
     <div title="播放/暂停" class="iconfont icon-play"></div>
-    <h3 class="subtitle">AC自动机</h3>
+    <h3 class="subtitle">WPF的文本渲染引擎（二）</h3>
     <div class="social">
         <div>
             <div class="share">
@@ -54,17 +53,20 @@
     <div class="section">
         <div class="article">
     <div class='main'>
-        <h1 class="title">AC自动机</h1>
+        <h1 class="title">WPF的文本渲染引擎（二）</h1>
         <div class="stuff">
-            <span>十二月 25, 2020</span>
+            <span>十二月 31, 2020</span>
             
-  <ul class="post-tags-list" itemprop="keywords"><li class="post-tags-list-item"><a class="post-tags-list-link" href="/tags/%E7%AE%97%E6%B3%95/" rel="tag">算法</a></li></ul>
+  <ul class="post-tags-list" itemprop="keywords"><li class="post-tags-list-item"><a class="post-tags-list-link" href="/tags/%E6%96%87%E6%9C%AC%E6%B8%B2%E6%9F%93/" rel="tag">文本渲染</a></li></ul>
 
 
         </div>
         <div class="content markdown">
-            <h1 id="AC自动机"><a href="#AC自动机" class="headerlink" title="AC自动机"></a>AC自动机</h1><p>AC自动机用于实现多模匹配算法，应用于字符串高亮、分词等场景</p>
-
+            <h1 id="WPF的文本渲染引擎（二）"><a href="#WPF的文本渲染引擎（二）" class="headerlink" title="WPF的文本渲染引擎（二）"></a>WPF的文本渲染引擎（二）</h1><p>回顾一下上节的内容，上节的内容主要是讲解了WPF的低层次文本渲染方案：<code>FormattedText</code> 方案的使用，这一节我们需要讨论的是WPF中最低层次的文本渲染方案：<code>TextLine</code>。</p>
+<h2 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h2><p><code>TextLine</code> 的方案就要比<code>FormattedText</code>方案复杂了亿点点，这个复杂度我建议如果你只是拿来玩玩的那就不要考虑这个方案，如果你是想提升自己，可以来试试。</p>
+<h2 id="TextRun-模型"><a href="#TextRun-模型" class="headerlink" title="TextRun 模型"></a>TextRun 模型</h2><p><code>TextRun</code> 模型涉及到两个类型，一个是<code>TextRun</code>类型另一个是 <code>TextRunProperties</code> 类型，这里请注意，TextRun的正确翻译并不是文本运行，而是文本序列，在编辑器这个领域中你会频繁遇到这个单词，它的意思就是指一段文本序列，而在WPF官方的文档中，<code>TextRun</code> 表示共享单个属性集的字符序列。这里的单个属性集指的就是 <code>TextRunProperties</code> 类型。它的类型定义如下：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">TextRunProperties</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">abstract</span> Brush BackgroundBrush &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">virtual</span> BaselineAlignment BaselineAlignment &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">abstract</span> CultureInfo CultureInfo &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">abstract</span> <span class="built_in">double</span> FontHintingEmSize &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">abstract</span> <span class="built_in">double</span> FontRenderingEmSize &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">abstract</span> Brush ForegroundBrush &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">virtual</span> NumberSubstitution NumberSubstitution &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">double</span> PixelsPerDip &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">abstract</span> TextDecorationCollection TextDecorations &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">abstract</span> TextEffectCollection TextEffects &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">abstract</span> Typeface Typeface &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">virtual</span> TextRunTypographyProperties TypographyProperties &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h2 id="引用"><a href="#引用" class="headerlink" title="引用"></a>引用</h2>
             <!--[if lt IE 9]><script>document.createElement('audio');</script><![endif]-->
             <audio id="audio" loop="1" preload="auto" controls="controls" data-autoplay="false">
                 <source type="audio/mpeg" src="">
